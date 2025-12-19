@@ -1,6 +1,4 @@
 # 🚀 Shopify Discovery Automation Agent
-**Architect:** [Your Name] | **Version:** 1.0.0
-
 An internal tool designed to convert messy discovery transcripts (Wispr Flow, Google Meet) 
 into structured Technical Design Documents (TDD) and validated Jira backlogs.
 
@@ -37,7 +35,7 @@ ready for import.
 
 ### 1. Clone & Init
 ```bash
-git clone [your-repo-url]
+git clone https://github.com/somenameidc999/shopify-architect-agent.git
 cd shopify-architect-agent
 uv init
 ```
