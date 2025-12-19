@@ -20,7 +20,7 @@ st.set_page_config(page_title="Shopify Architect Discovery", layout="wide")
 @st.cache_resource
 def get_discovery_agent():
     return Agent(
-        model=Gemini(id="gemini-2.5-flash"),  # , thinking_level="HIGH"
+        model=Gemini(id="gemini-3-flash-preview"),  # , thinking_level="HIGH"
         tools=[ShopifyTools(), DuckDuckGoTools()],
         description="You are a Senior Staff Technical Architect at a Shopify Plus agency.",
         instructions=textwrap.dedent(
@@ -45,7 +45,7 @@ agent = get_discovery_agent()
 
 with st.sidebar:
     st.title("⚙️ Agent Settings")
-    st.info("Connected to: Gemini 2.5 Flash")
+    st.info("Connected to: Gemini 3 Flash")
     # if st.button("Clear Session"):
     #     st.rerun()
 
