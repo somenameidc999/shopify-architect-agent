@@ -18,7 +18,7 @@ to validate architectural decisions against real-world Shopify constraints.
 ---
 
 ## ✨ Key Features
-- **Voice-to-Blueprint:** Paste 10-minute brain dumps from Wispr Flow and get a 3nd-level TDD.
+- **Voice-to-Blueprint:** Paste 10-minute brain dumps from Wispr Flow and get a downloadable TDD.
 - **Shopify Context:** Agent is programmed to prioritize **Shopify Functions** over 
 Legacy Scripts and monitors **GraphQL rate limits**.
 - **Automated Backlog:** Generates structured Jira tickets (Stories, Tasks, Spikes) 
