@@ -1,0 +1,15 @@
+[project]
+name = "shopify-architect-agent"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "agno>=2.3.16",
+    "ddgs>=9.10.0",
+    "google-genai>=1.56.0",
+    "jira>=3.10.5",
+    "notion-client>=2.7.0",
+    "python-dotenv>=1.2.1",
+    "streamlit>=1.52.2",
+]
