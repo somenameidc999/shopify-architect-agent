@@ -5,12 +5,12 @@ into structured Technical Design Documents (TDD) and validated Jira backlogs.
 ---
 
 ## 🏗️ Core Architecture
-This tool leverages **Agno** (formerly Phidata) and **Gemini 3 Flash** to perform 
+This tool leverages **Agno** (formerly Phidata) and **Perplexity Sonar** to perform 
 agentic reasoning. Unlike basic GPT wrappers, it uses a **Plan-and-Learn** loop 
 to validate architectural decisions against real-world Shopify constraints.
 
 ### The Stack:
-- **Reasoning:** Gemini 3 Flash (Thinking Mode: HIGH)
+- **Reasoning:** Perplexity Sonar
 - **Framework:** Agno (Agentic Orchestration)
 - **UI:** Streamlit (Wide Layout)
 - **Tools:** `ShopifyTools`, `DuckDuckGoTools`
@@ -31,7 +31,7 @@ ready for import.
 
 ### Prerequisites:
 - [uv](https://github.com/astral-sh/uv) (Extremely fast Python package manager)
-- Google AI Studio API Key (Gemini 3 Flash access)
+- Perplexity API Key (Perplexity Sonar access)
 
 ### 1. Clone & Init
 ```bash
