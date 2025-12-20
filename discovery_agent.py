@@ -194,7 +194,7 @@ if "blueprint" in st.session_state:
 
 with st.sidebar:
     st.title("⚙️ Agent Settings")
-    st.info("Connected to: Gemini 2.0 Flash")
+    st.info("Connected to: Perplexity Sonar")
 
     if "blueprint" in st.session_state:
         # Helper for easy copy-pasting
