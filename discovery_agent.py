@@ -1,89 +1,109 @@
+import json
 import re
-import textwrap
 import streamlit as st
 from agno.agent import Agent
+from datetime import datetime
 from dotenv import load_dotenv
-
-# from agno.tools.jira import JiraTools
+from typing import List, Optional
+from pydantic import BaseModel, Field
 from agno.models.google import Gemini
-
-# from agno.tools.github import GithubTools
 from agno.tools.shopify import ShopifyTools
-
-# from agno.tools.postgres import PostgresTools
+from agno.models.perplexity import Perplexity
 from agno.tools.duckduckgo import DuckDuckGoTools
+
+
+class ShopifyConstraint(BaseModel):
+    category: str = Field(..., description="API, Checkout, Data Model, or UI")
+    requirement: str = Field(..., description="The technical mandate.")
+    limit_warning: Optional[str] = Field(
+        None, description="Platform limits (e.g., 2048 variants, 20/sec Plus API rate)."
+    )
+    priority: str = Field(..., description="Must-have vs Nice-to-have")
+
+
+class JiraTicket(BaseModel):
+    title: str
+    description: str
+    ticket_type: str = Field(..., description="Story, Task, or Spike")
+    priority: str
+
+
+class DiscoveryBlueprint(BaseModel):
+    strategy_overview: str
+    technical_constraints: List[ShopifyConstraint]
+    backlog: List[JiraTicket]
+
 
 load_dotenv()
 st.set_page_config(page_title="Shopify Architect Discovery", layout="wide")
 
 
+def extract_json_from_text(text: str) -> Optional[str]:
+    """Extract JSON from text that might be wrapped in markdown code blocks or have extra text."""
+    if not text or not text.strip():
+        return None
+
+    # Try to find JSON in markdown code blocks (```json ... ``` or ``` ... ```)
+    json_block_pattern = r"```(?:json)?\s*(\{.*?\})\s*```"
+    match = re.search(json_block_pattern, text, re.DOTALL)
+    if match:
+        return match.group(1)
+
+    # Try to find JSON object directly in the text
+    json_object_pattern = r"\{.*\}"
+    match = re.search(json_object_pattern, text, re.DOTALL)
+    if match:
+        return match.group(0)
+
+    # If no pattern matches, return the original text (might be pure JSON)
+    return text.strip()
+
+
 @st.cache_resource
 def get_discovery_agent():
+    current_year = datetime.now().year
+    json_example = {
+        "strategy_overview": "Unified Shopify Markets architecture setup...",
+        "technical_constraints": [
+            {
+                "category": "Checkout",
+                "requirement": "International duties calculated via Shopify Markets.",
+                "limit_warning": "Must use Checkout UI Extensions; checkout.liquid is deprecated.",
+                "priority": "Must-have",
+            }
+        ],
+        "backlog": [
+            {
+                "title": "Configure Shopify Markets for UK/EU",
+                "description": "Set up localized domains and tax-inclusive pricing.",
+                "ticket_type": "Task",
+                "priority": "High",
+            }
+        ],
+    }
+
     return Agent(
-        model=Gemini(id="gemini-3-flash-preview"),  # , thinking_level="HIGH"
+        # model=Gemini(id="gemini-2.0-flash-exp"),
+        model=Perplexity(id="sonar"),
         tools=[ShopifyTools(), DuckDuckGoTools()],
-        description="You are a Senior Staff Technical Architect at a Shopify Plus agency.",
-        instructions=textwrap.dedent(
-            """
-        You are a high-performing Technical Architect. 
-        Analyze the provided transcript and generate:
-        
-        1. ARCHITECTURAL OVERVIEW: High-level technical strategy.
-        2. TECHNICAL RISKS: Identify Shopify API limits or integration hurdles.
-        3. JIRA BACKLOG: Generate a list of tickets for the development team. 
-           For each ticket, provide:
-           - Title: Clear, action-oriented name (e.g., 'SPIKE: NetSuite Inventory Webhook Auth')
-           - Description: A technical summary of 'Definition of Done'.
-           - Priority: High/Medium/Low based on the project phase.
-    """
-        ),
-        markdown=True,
+        # output_schema=DiscoveryBlueprint,
+        description=f"You are a Staff Technical Architect. You VALIDATE requirements against Shopify {current_year} limits.",
+        instructions=[
+            "1. Identify the 'Business Intent' from the transcript.",
+            f"2. Cross-reference requests against Shopify {current_year} Limits:",
+            "   - Variants: Now up to 2,048.",
+            "   - API: Plus stores have 10x rate limits (20 req/sec REST, 1000 pts/sec GraphQL).",
+            "   - Checkout: Must use Checkout UI Extensions (liquid is dead).",
+            "3. If a request violates these or is high-risk, flag it in 'limit_warning'.",
+            "4. Output strictly according to the DiscoveryBlueprint schema.",
+            f"5. Here is a sample of the DiscoveryBlueprint JSON schema you must follow: {json_example}",
+            "6. Limit to the five most critical constraints and five most critical backlog items.",
+            "7. Limit strategy_overview to 3 sentences. Limit description for Jira tickets to 120 characters. ",
+        ],
     )
 
 
 agent = get_discovery_agent()
-
-with st.sidebar:
-    st.title("⚙️ Agent Settings")
-    st.info("Connected to: Gemini 3 Flash")
-    # if st.button("Clear Session"):
-    #     st.rerun()
-
-
-def parse_sections(text):
-    """Uses regex to find content between the predefined headers."""
-    sections = {
-        "Overview": "No overview generated.",
-        "Risks": "No technical risks identified.",
-        "Jira": "No tickets generated.",
-    }
-
-    # Regex pattern: Find header, then capture everything until the next # Header or end of string
-    overview_match = re.search(
-        r"# ARCHITECTURAL OVERVIEW(.*?)(?=# TECHNICAL RISKS|# JIRA BACKLOG|$)",
-        text,
-        re.DOTALL | re.IGNORECASE,
-    )
-    risks_match = re.search(
-        r"# TECHNICAL RISKS(.*?)(?=# ARCHITECTURAL OVERVIEW|# JIRA BACKLOG|$)",
-        text,
-        re.DOTALL | re.IGNORECASE,
-    )
-    jira_match = re.search(
-        r"# JIRA BACKLOG(.*?)(?=# ARCHITECTURAL OVERVIEW|# TECHNICAL RISKS|$)",
-        text,
-        re.DOTALL | re.IGNORECASE,
-    )
-
-    if overview_match:
-        sections["Overview"] = overview_match.group(1).strip()
-    if risks_match:
-        sections["Risks"] = risks_match.group(1).strip()
-    if jira_match:
-        sections["Jira"] = jira_match.group(1).strip()
-
-    return sections
-
 
 st.title("🚀 Shopify Rapid Discovery")
 st.caption(
@@ -101,38 +121,91 @@ if st.button("Generate Blueprint", type="primary"):
         st.warning("Please enter a transcript first.")
     else:
         with st.spinner("Agent is reasoning through the architecture..."):
-            # Use Agno's .run() to get the response object
             response = agent.run(transcript_input)
 
-            # Store result in session state to keep it persistent
-            st.session_state.raw_result = response.content
-            st.session_state.sections = parse_sections(response.content)
+            if isinstance(response.content, DiscoveryBlueprint):
+                st.session_state.blueprint = response.content
+            elif isinstance(response.content, str):
+                try:
+                    json_str = extract_json_from_text(response.content)
 
-if "sections" in st.session_state:
+                    if not json_str:
+                        st.error(
+                            "No JSON found in agent response. Response appears to be empty or invalid."
+                        )
+                        st.write(
+                            "Raw Output for debugging:",
+                            response.content[:500] if response.content else "(empty)",
+                        )
+                    else:
+                        blueprint_dict = json.loads(json_str)
+                        blueprint = DiscoveryBlueprint(**blueprint_dict)
+                        st.session_state.blueprint = blueprint
+                        st.success("Successfully parsed JSON from agent response!")
+                except json.JSONDecodeError as e:
+                    st.error(f"Failed to parse JSON: {e}")
+                    st.write(
+                        "**Extracted JSON string:**",
+                        json_str[:500] if json_str else "(none)",
+                    )
+                    st.write(
+                        "**Raw Output for debugging:**",
+                        response.content[:1000] if response.content else "(empty)",
+                    )
+                except ValueError as e:
+                    st.error(f"Failed to validate JSON structure: {e}")
+                    st.write(
+                        "**Extracted JSON string:**",
+                        json_str[:500] if json_str else "(none)",
+                    )
+                    st.write(
+                        "**Raw Output for debugging:**",
+                        response.content[:1000] if response.content else "(empty)",
+                    )
+            else:
+                st.error("Unexpected response format.")
+
+if "blueprint" in st.session_state:
+    bp: DiscoveryBlueprint = st.session_state.blueprint
     st.divider()
 
-    # We create tabs to separate the 3 core requirements
-    tab1, tab2, tab3 = st.tabs(["🏗️ Overview", "⚠️ Technical Risks", "🎫 Jira Backlog"])
+    tab1, tab2, tab3 = st.tabs(["🏗️ Strategy", "⚠️ Constraints", "🎫 Jira Backlog"])
 
     with tab1:
-        st.markdown(st.session_state.sections["Overview"])
+        st.subheader("Architectural Strategy")
+        st.markdown(bp.strategy_overview)
 
     with tab2:
-        if st.session_state.sections["Risks"] != "No technical risks identified.":
-            st.warning("Critical Technical Considerations")
-
-        st.markdown(st.session_state.sections["Risks"])
+        st.subheader("Technical Guardrails")
+        if bp.technical_constraints:
+            # Convert list of objects to list of dicts for the table
+            st.table([c.model_dump() for c in bp.technical_constraints])
+        else:
+            st.info("No specific constraints identified.")
 
     with tab3:
-        st.markdown(st.session_state.sections["Jira"])
-        if st.session_state.sections["Jira"] != "No tickets generated.":
-            st.download_button(
-                label="Download TDD as Markdown",
-                data=st.session_state.sections["Jira"],
-                file_name="discovery.md",
-                mime="text/markdown",
-            )
+        st.subheader("Validated Jira Tickets")
+        for ticket in bp.backlog:
+            with st.expander(
+                f"{ticket.ticket_type}: {ticket.title} ({ticket.priority} Priority)"
+            ):
+                st.write(ticket.description)
 
-    with st.sidebar:
-        if st.checkbox("Show Raw Agent Output"):
-            st.code(st.session_state.raw_result)
+
+with st.sidebar:
+    st.title("⚙️ Agent Settings")
+    st.info("Connected to: Gemini 2.0 Flash")
+
+    if "blueprint" in st.session_state:
+        # Helper for easy copy-pasting
+        full_md = f"# Strategy\n{bp.strategy_overview}\n\n# Tickets"
+        full_md += "\n".join([f"\n**Title**:\n{t.title}\n\n**Description**:\n{t.description}\n\n**Ticket type**:\n{t.ticket_type}\n\n**Priority**:\n{t.priority}" for t in bp.backlog])
+        full_md += f"\n\n# Technical Constraints"
+        full_md += "\n".join([f"\n**Category**:\n{t.category}\n\n**Requirement**:\n{t.requirement}\n\n**Limit warning**:\n{t.limit_warning}\n\n**Priority**:\n{t.priority}" for t in bp.technical_constraints])
+
+        st.download_button(
+            label="Download TDD (.md)",
+            data=full_md,
+            file_name="discovery_output.md",
+            mime="text/markdown",
+        )
