@@ -4,6 +4,7 @@ import streamlit as st
 from agno.agent import Agent
 from datetime import datetime
 from dotenv import load_dotenv
+import streamlit_mermaid as stmd
 from typing import List, Optional
 from pydantic import BaseModel, Field
 from agno.models.google import Gemini
@@ -32,10 +33,20 @@ class DiscoveryBlueprint(BaseModel):
     strategy_overview: str
     technical_constraints: List[ShopifyConstraint]
     backlog: List[JiraTicket]
+    mermaid_diagram: str
 
 
 load_dotenv()
 st.set_page_config(page_title="Shopify Architect Discovery", layout="wide")
+
+
+def generate_mermaid_diagram(markup: str):
+    """
+    Renders a Mermaid.js diagram in the Streamlit UI.
+    :param markup: The valid Mermaid.js syntax string (e.g., 'graph TD; A-->B').
+    """
+    stmd.st_mermaid(markup)
+    return "Diagram rendered successfully for the user."
 
 
 def extract_json_from_text(text: str) -> Optional[str]:
@@ -80,6 +91,18 @@ def get_discovery_agent():
                 "priority": "High",
             }
         ],
+        "mermaid_diagram": """
+        graph TD
+            A --> B;
+            B --> C;
+            C --> D;
+            D --> E;
+            E --> F;
+            F --> G;
+            G --> H;
+            H --> I;
+            I --> J;
+        """,
     }
 
     return Agent(
@@ -169,7 +192,9 @@ if "blueprint" in st.session_state:
     bp: DiscoveryBlueprint = st.session_state.blueprint
     st.divider()
 
-    tab1, tab2, tab3 = st.tabs(["🏗️ Strategy", "⚠️ Constraints", "🎫 Jira Backlog"])
+    tab1, tab2, tab3, tab4 = st.tabs(
+        ["🏗️ Strategy", "⚠️ Constraints", "🎫 Jira Backlog", "🎨 Mermaid Diagram"]
+    )
 
     with tab1:
         st.subheader("Architectural Strategy")
@@ -191,6 +216,11 @@ if "blueprint" in st.session_state:
             ):
                 st.write(ticket.description)
 
+    with tab4:
+        st.subheader("Mermaid Diagram")
+        print(bp.mermaid_diagram)
+        stmd.st_mermaid(bp.mermaid_diagram)
+
 
 with st.sidebar:
     st.title("⚙️ Agent Settings")
@@ -199,9 +229,19 @@ with st.sidebar:
     if "blueprint" in st.session_state:
         # Helper for easy copy-pasting
         full_md = f"# Strategy\n{bp.strategy_overview}\n\n# Tickets"
-        full_md += "\n".join([f"\n**Title**:\n{t.title}\n\n**Description**:\n{t.description}\n\n**Ticket type**:\n{t.ticket_type}\n\n**Priority**:\n{t.priority}" for t in bp.backlog])
+        full_md += "\n".join(
+            [
+                f"\n**Title**:\n{t.title}\n\n**Description**:\n{t.description}\n\n**Ticket type**:\n{t.ticket_type}\n\n**Priority**:\n{t.priority}"
+                for t in bp.backlog
+            ]
+        )
         full_md += f"\n\n# Technical Constraints"
-        full_md += "\n".join([f"\n**Category**:\n{t.category}\n\n**Requirement**:\n{t.requirement}\n\n**Limit warning**:\n{t.limit_warning}\n\n**Priority**:\n{t.priority}" for t in bp.technical_constraints])
+        full_md += "\n".join(
+            [
+                f"\n**Category**:\n{t.category}\n\n**Requirement**:\n{t.requirement}\n\n**Limit warning**:\n{t.limit_warning}\n\n**Priority**:\n{t.priority}"
+                for t in bp.technical_constraints
+            ]
+        )
 
         st.download_button(
             label="Download TDD (.md)",
